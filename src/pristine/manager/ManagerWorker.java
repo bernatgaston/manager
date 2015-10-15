@@ -11,6 +11,9 @@ import eu.irati.librina.ser_obj_t;
 import eu.irati.librina.res_code_t;
 import eu.irati.librina.obj_info_t;
 import eu.irati.librina.filt_info_t;
+import eu.irati.librina.Exception;
+import eu.irati.librina.ReadSDUException;
+import eu.irati.librina.CDAPException;
 
 import eu.irati.librinad.ipcp_config_t;
 import eu.irati.librinad.StringList;
@@ -42,7 +45,7 @@ public class ManagerWorker extends CDAPCallbackInterface implements Runnable{
 	}
 	
 	public void remote_create_result(con_handle_t con, obj_info_t obj, res_info_t res) {
-		System.out.println("Result code is: " + res.getCode_());
+		System.out.println("Create IPCP result code is: " + res.getCode_());
 	}
 
 	public void remote_read_result(con_handle_t con, obj_info_t obj, res_info_t res) {
@@ -53,7 +56,7 @@ public class ManagerWorker extends CDAPCallbackInterface implements Runnable{
 		StringEncoder stringEncoder = new StringEncoder();
 		stringEncoder.decode(obj.getValue_(), query_rib);
 		System.out.println("QueryRIB:");
-		System.out.println(query_rib);
+		System.out.println(query_rib[0]);
 	}
 	
 	public void run(){
@@ -62,17 +65,29 @@ public class ManagerWorker extends CDAPCallbackInterface implements Runnable{
         cdap_prov = rina.getProvider();
         // CACEP
         cacep(flow_.getPortId());
-        createIPCP_1(flow_.getPortId());
+        if(createIPCP_1(flow_.getPortId()))
+        {
+        	queryRIB(flow_.getPortId(), IPCP_1 + "/ribDaemon");
+        }
 	}
 	
 	private void cacep(int port_id)
 	{
 		byte[] buffer = new byte[Manager.max_sdu_size_in_bytes];
-		int bytes_read = rina.getIpcManager().readSDU(port_id, buffer, Manager.max_sdu_size_in_bytes);
 		ser_obj_t message = new ser_obj_t();
-		message.setMessage_(buffer);
-		message.setSize_(bytes_read);
+		try{
+			int bytes_read = rina.getIpcManager().readSDU(port_id, buffer, Manager.max_sdu_size_in_bytes);
+			message.setMessage_(buffer);
+			message.setSize_(bytes_read);
+		}catch(ReadSDUException e)
+		{
+			System.out.println("ReadSDUException in cacep: " + e.getMessage());
+		}
+		try {
 		cdap_prov.process_message(message, port_id);
+		} catch (CDAPException e) {
+			System.out.println("CDAPException in cacep: " + e.getMessage());
+		}
 	}
 	
 	private boolean createIPCP_1(int port_id)
@@ -105,17 +120,59 @@ public class ManagerWorker extends CDAPCallbackInterface implements Runnable{
 		cdap_prov.remote_create(port_id, obj, flags, filt);
 		System.out.println("create IPC request CDAP message sent to port " + port_id);
 
+		ser_obj_t message = new ser_obj_t();
 		try {
 			int bytes_read = rina.getIpcManager().readSDU(port_id, buffer,
 								max_sdu_size_in_bytes);
-			ser_obj_t message = new ser_obj_t();
 			message.setMessage_(buffer);
 			message.setSize_(bytes_read);
-			cdap_prov.process_message(message, port_id);
-		} catch (Exception e) {
+		} catch (ReadSDUException e) {
 			System.out.println("ReadSDUException in createIPCP_1: " + e.getMessage());
 			return false;
 		}
+		try
+		{
+			cdap_prov.process_message(message, port_id);
+		}
+		catch (CDAPException e) {
+			System.out.println("CDAPEXception in createIPCP_1: " + e.getMessage());
+			return false;
+		}
 		return true;
+	}
+	
+	private void queryRIB(int port_id, String name)
+	{
+		byte[] buffer = new byte[max_sdu_size_in_bytes];
+        ser_obj_t message = new ser_obj_t();
+
+		obj_info_t obj = new obj_info_t();
+		obj.setName_(name);
+		obj.setClass_("RIBDaemon");
+		obj.setInst_(0);
+
+		flags_t flags = new flags_t();
+		flags.setFlags_(flags_t.Flags.NONE_FLAGS);
+
+		filt_info_t filt =  new filt_info_t();;
+		filt.setFilter_("");
+		filt.setScope_(0);
+
+        cdap_prov.remote_read(port_id, obj, flags, filt);
+        System.out.println("Read RIBDaemon request CDAP message sent");
+		try {
+	        int bytes_read = rina.getIpcManager().readSDU(port_id,
+	        				     buffer,
+	        				     max_sdu_size_in_bytes);
+	        message.setMessage_(buffer);
+	        message.setSize_(bytes_read);
+		} catch (ReadSDUException e) {
+			System.out.println("ReadSDUException in createIPCP_1: " + e.getMessage());
+		}
+		try{
+	        cdap_prov.process_message(message, port_id);
+		} catch (CDAPException e) {
+			System.out.println("ReadSDUException in queryRIB: " + e.getMessage() + " " + e.toString());
+		}
 	}
 }
