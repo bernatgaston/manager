@@ -34,6 +34,7 @@ import eu.irati.librina.CDAPMessage;
 import eu.irati.librinad.ipcp_config_t;
 import eu.irati.librinad.StringList;
 import eu.irati.librinad.IPCPConfigEncoder;
+import eu.irati.librinad.RIBObjectDataListEncoder;
 import eu.irati.librina.StringEncoder;
 import eu.irati.librina.concrete_syntax_t;
 import eu.irati.librina.DIFInformation;
@@ -79,11 +80,15 @@ public class ManagerWorker extends CDAPCallbackInterface implements Runnable{
 		// print object value
 		System.out.println("Query Rib operation returned result " + res.getCode_());
 		// decode object value
-		String[] query_rib = new String[1];
+		/*String[] query_rib = new String[1];
 		StringEncoder stringEncoder = new StringEncoder();
 		stringEncoder.decode(obj.getValue_(), query_rib);
+		*/
+		RIBObjectDataListEncoder encoder = new RIBObjectDataListEncoder();
+		
+		//encoder.decode(arg0, arg1);
 		System.out.println("QueryRIB:");
-		System.out.println(query_rib[0]);
+		//System.out.println(query_rib[0]);
 	}
 	
 	public void run(){
@@ -95,7 +100,7 @@ public class ManagerWorker extends CDAPCallbackInterface implements Runnable{
         cacep(flow_.getPortId());
         if(createIPCP_1(flow_.getPortId()))
         {
-        	//queryRIB(flow_.getPortId(), IPCP_1 + "/ribDaemon");
+        	queryRIB(flow_.getPortId(), IPCP_1 + "/ribDaemon");
         }
 	}
 	
@@ -420,7 +425,7 @@ public class ManagerWorker extends CDAPCallbackInterface implements Runnable{
 		}
 		return true;
 	}
-/*	
+	
 	private void queryRIB(int port_id, String name)
 	{
 		byte[] buffer = new byte[max_sdu_size_in_bytes];
@@ -458,5 +463,5 @@ public class ManagerWorker extends CDAPCallbackInterface implements Runnable{
 			System.out.println("ReadSDUException in queryRIB: " + e.getMessage() + " " + e.toString());
 		}
 	}
-*/
+
 }
