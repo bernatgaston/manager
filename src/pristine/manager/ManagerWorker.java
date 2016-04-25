@@ -7,6 +7,7 @@ import eu.irati.librina.PFTConfiguration;
 import eu.irati.librina.PolicyConfig;
 import eu.irati.librina.PolicyParameter;
 import eu.irati.librina.QoSCube;
+import eu.irati.librina.RIBObjectData;
 import eu.irati.librina.RMTConfiguration;
 import eu.irati.librina.con_handle_t;
 import eu.irati.librina.flags_t;
@@ -31,6 +32,7 @@ import eu.irati.librina.SecurityManagerConfiguration;
 import eu.irati.librina.StaticIPCProcessAddress;
 import eu.irati.librina.CDAPException;
 import eu.irati.librina.CDAPMessage;
+import eu.irati.librinad.RIBObjectDataList;
 import eu.irati.librinad.ipcp_config_t;
 import eu.irati.librinad.StringList;
 import eu.irati.librinad.IPCPConfigEncoder;
@@ -77,24 +79,28 @@ public class ManagerWorker extends CDAPCallbackInterface implements Runnable{
 	}
 
 	public void remote_read_result(con_handle_t con, obj_info_t obj, res_info_t res, flags_t flags, int invoke_id) {
-		// print object value
 		System.out.println("Query Rib operation returned result " + res.getCode_());
-		// decode object value
-		/*String[] query_rib = new String[1];
-		StringEncoder stringEncoder = new StringEncoder();
-		stringEncoder.decode(obj.getValue_(), query_rib);
-		*/
+		RIBObjectDataList query_rib = new RIBObjectDataList();
 		RIBObjectDataListEncoder encoder = new RIBObjectDataListEncoder();
 		
-		//encoder.decode(arg0, arg1);
-		System.out.println("QueryRIB:");
+		encoder.decode(obj.getValue_(), query_rib);
+		int i = 1;
+		System.out.println("RIBDataObject List size "+ query_rib.size());
+		while (query_rib.size() > 0)
+		{
+			RIBObjectData data_obj = query_rib.getFirst();
+			System.out.println("RIBDataObject " + i + ": " + data_obj.getDisplayable_value_());
+			i++;
+			query_rib.clearFirst();
+		}
+
 		//System.out.println(query_rib[0]);
 	}
 	
 	public void run(){
         System.out.println("Manager worker started");
         concrete_syntax_t syntax = new concrete_syntax_t();
-        rina.init(this, syntax, false);
+        rina.cdap_init(this, syntax, false);
         cdap_prov = rina.getProvider();
         // CACEP
         cacep(flow_.getPortId());
