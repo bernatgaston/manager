@@ -1,3 +1,3 @@
 Manifest-Version: 1.0
-Class-Path: /home/irati/irati/share/librina/librina.jar /home/irati/irati/share/rinad/librinad.jar /home/irati/manager/bin/
+Class-Path: /root/irati/share/librina/librina.jar /home/irati/irati/share/rinad/librinad.jar /home/irati/manager/bin/
 Main-Class: Main
