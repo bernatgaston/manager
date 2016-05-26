@@ -11,6 +11,7 @@ import eu.irati.librina.RIBObjectData;
 import eu.irati.librina.RMTConfiguration;
 import eu.irati.librina.con_handle_t;
 import eu.irati.librina.flags_t;
+import eu.irati.librina.flags_t.Flags;
 import eu.irati.librina.res_info_t;
 import eu.irati.librina.AddressPrefixConfiguration;
 import eu.irati.librina.AddressingConfiguration;
@@ -59,6 +60,7 @@ public class ManagerWorker extends CDAPCallbackInterface implements Runnable{
 	
 	private FlowInformation flow_;
 	private CDAPProviderInterface cdap_prov;
+	private boolean cacep_finished = false;
 
 	public ManagerWorker(FlowInformation flow)
 	{
@@ -79,7 +81,15 @@ public class ManagerWorker extends CDAPCallbackInterface implements Runnable{
 	}
 
 	public void remote_read_result(con_handle_t con, obj_info_t obj, res_info_t res, flags_t flags, int invoke_id) {
-		System.out.println("Query Rib operation returned result " + res.getCode_());
+		System.out.println("Remote read result: " + res.getCode_());
+		System.out.println("Object: " + obj.getName_());
+		System.out.println("Flags: " + flags.getFlags_());
+		
+		if (flags.getFlags_() == flags_t.Flags.NONE_FLAGS)
+		{
+			cacep_finished = true;
+		}
+		/*
 		RIBObjectDataList query_rib = new RIBObjectDataList();
 		RIBObjectDataListEncoder encoder = new RIBObjectDataListEncoder();
 		
@@ -95,6 +105,7 @@ public class ManagerWorker extends CDAPCallbackInterface implements Runnable{
 		}
 
 		//System.out.println(query_rib[0]);
+		 */
 	}
 	
 	public void run(){
@@ -104,10 +115,11 @@ public class ManagerWorker extends CDAPCallbackInterface implements Runnable{
         cdap_prov = rina.getProvider();
         // CACEP
         cacep(flow_.getPortId());
-        if(createIPCP_1(flow_.getPortId()))
+    /*    if(createIPCP_1(flow_.getPortId()))
         {
         	queryRIB(flow_.getPortId(), IPCP_1 + "/ribDaemon");
         }
+        */
 	}
 	
 	private void cacep(int port_id)
@@ -126,6 +138,35 @@ public class ManagerWorker extends CDAPCallbackInterface implements Runnable{
 		try 
 		{
 			cdap_prov.process_message(message, port_id);
+			
+			// Send a Readover all the objects of the RIB
+			obj_info_t obj = new obj_info_t();
+			obj.setName_("/computingSystemID=1");
+			obj.setClass_("ComputingSystem");
+			obj.setInst_(0);
+
+			flags_t flags = new flags_t();
+			flags.setFlags_(flags_t.Flags.NONE_FLAGS);
+
+			filt_info_t filt =  new filt_info_t();;
+			filt.setFilter_("");
+			filt.setScope_(10);
+			
+			con_handle_t con = new con_handle_t();
+			con.setPort_id(port_id);
+			
+	        cdap_prov.remote_read(con, obj, flags, filt, 28);
+	        System.out.println("Read all the managed objects");
+	        
+	        while(!cacep_finished)
+	        {
+		        int bytes_read = rina.getIpcManager().readSDU(port_id,
+	        				     buffer,
+	        				     max_sdu_size_in_bytes);
+		        message.setMessage_(buffer);
+		        message.setSize_(bytes_read);
+		        cdap_prov.process_message(message, port_id);
+	        }
 		} catch (CDAPException e) {
 			System.out.println("CDAPException in cacep: " + e.getMessage());
 		}

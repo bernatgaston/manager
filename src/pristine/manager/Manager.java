@@ -65,10 +65,8 @@ public class Manager {
 			ari.setApplicationRegistrationType(ApplicationRegistrationType.APPLICATION_REGISTRATION_SINGLE_DIF);
 			ari.setDifName(new ApplicationProcessNamingInformation(dif_name_, new String()));
 		}
-		System.out.println("Hola");
         // Request the registration
         seqnum = rina.getIpcManager().requestApplicationRegistration(ari);
-        System.out.println("Adeu?");
         // Wait for the response to come
         for (;;) {
                 event = rina.getIpcEventProducer().eventWait();
