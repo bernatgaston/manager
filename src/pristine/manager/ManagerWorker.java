@@ -115,11 +115,11 @@ public class ManagerWorker extends CDAPCallbackInterface implements Runnable{
         cdap_prov = rina.getProvider();
         // CACEP
         cacep(flow_.getPortId());
-    /*    if(createIPCP_1(flow_.getPortId()))
+       /* if(createIPCP_1(flow_.getPortId()))
         {
-        	queryRIB(flow_.getPortId(), IPCP_1 + "/ribDaemon");
-        }
-        */
+        	//queryRIB(flow_.getPortId(), IPCP_1 + "/ribDaemon");
+        }*/
+        
 	}
 	
 	private void cacep(int port_id)
