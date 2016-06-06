@@ -75,7 +75,6 @@ public class Manager {
                         break;
                 }
         }
-        System.out.println("Adeu");
         resp = (RegisterApplicationResponseEvent)event;
 
         // Update librina state
